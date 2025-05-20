@@ -1291,7 +1291,10 @@ export default {
       this.customer_credit_dict.push(advance);
     },
     apply_payment_term(payment_term_code) {
-      if (payment_term_code == 'LAMRESEARCH' && this.invoice_doc.total > 4) {
+      if (payment_term_code == 'LAMRESEARCH' &&
+          this.invoice_doc.total > 4 &&
+          this.invoice_doc.customer == 'LAM COMPANY' &&
+          this.invoice_doc.debit_to == '1310-1000-01 - LAM COMPANY - MKSB') {
         this.is_payment_term_applied = true;
         this.clear_all_amounts();
       }
