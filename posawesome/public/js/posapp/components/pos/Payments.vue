@@ -15,6 +15,33 @@
         <v-row v-if="invoice_doc" class="px-1 py-0">
           <v-col cols="7">
             <v-text-field
+              dense
+              outlined
+              color="primary"
+              :label="frappe._('Payment Term Code')"
+              background-color="white"
+              hide-details
+              v-model="payment_term_code"
+              :disabled="is_payment_term_applied"
+              @keydown.enter="apply_payment_term(payment_term_code)"
+            ></v-text-field>
+          </v-col>
+          <v-col cols="5" v-if="is_payment_term_applied">
+            <v-text-field
+              outlined
+              color="primary"
+              :label="frappe._('Claimed Amount')"
+              background-color="white"
+              hide-details
+              :value="formtCurrency(claimed_amount)"
+              readonly
+              :prefix="currencySymbol(invoice_doc.currency)"
+              dense
+            ></v-text-field>
+          </v-col>
+          
+          <v-col cols="7">
+            <v-text-field
               outlined
               color="primary"
               :label="frappe._('Paid Amount')"
@@ -289,7 +316,20 @@
               :label="frappe._('Grand Total')"
               background-color="white"
               hide-details
-              :value="formtCurrency(invoice_doc.grand_total)"
+              :value="formtCurrency(invoice_doc.grand_total - claimed_amount)"
+              disabled
+              :prefix="currencySymbol(invoice_doc.currency)"
+            ></v-text-field>
+          </v-col>
+          <v-col cols="6" v-if="is_payment_term_applied">
+            <v-text-field
+              dense
+              outlined
+              color="primary"
+              :label="frappe._('Trade Receivable')"
+              background-color="white"
+              hide-details
+              :value="formtCurrency(claimed_amount)"
               disabled
               :prefix="currencySymbol(invoice_doc.currency)"
             ></v-text-field>
@@ -728,12 +768,17 @@ export default {
     pos_settings: "",
     customer_info: "",
     mpesa_modes: [],
+    is_payment_term_applied: false,
   }),
 
   methods: {
     back_to_invoice() {
       evntBus.$emit("show_payment", "false");
       evntBus.$emit("set_customer_readonly", false);
+
+      // reset payment term add-ons
+      this.payment_term_code = '';
+      this.is_payment_term_applied = false;
     },
     submit(event, payment_received = false, print = false) {
       if (!this.invoice_doc.is_return && this.total_payments < 0) {
@@ -770,7 +815,7 @@ export default {
 
       if (
         !this.pos_profile.posa_allow_partial_payment &&
-        this.total_payments <
+        (this.total_payments + this.claimed_amount) <
           (this.invoice_doc.rounded_total || this.invoice_doc.grand_total)
       ) {
         evntBus.$emit("show_mesage", {
@@ -1245,9 +1290,19 @@ export default {
       this.clear_all_amounts();
       this.customer_credit_dict.push(advance);
     },
+    apply_payment_term(payment_term_code) {
+      if (payment_term_code == 'LAMRESEARCH' && this.invoice_doc.total > 4) {
+        this.is_payment_term_applied = true;
+        this.clear_all_amounts();
+      }
+    }
   },
 
   computed: {
+    claimed_amount() {
+      let amount = this.is_payment_term_applied ? 4 : 0;
+      return amount;
+    },
     total_payments() {
       let total = parseFloat(this.invoice_doc.loyalty_amount);
       if (this.invoice_doc && this.invoice_doc.payments) {
@@ -1265,7 +1320,7 @@ export default {
     diff_payment() {
       let diff_payment = this.flt(
         (this.invoice_doc.rounded_total || this.invoice_doc.grand_total) -
-          this.total_payments,
+          (this.total_payments + this.claimed_amount),
         this.currency_precision
       );
       this.paid_change = -diff_payment;
