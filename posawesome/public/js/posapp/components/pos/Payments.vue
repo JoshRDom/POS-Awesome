@@ -119,7 +119,6 @@
                 "
                 :rules="[isNumber]"
                 :prefix="currencySymbol(invoice_doc.currency)"
-                @focus="set_rest_amount(payment.idx)"
                 :readonly="invoice_doc.is_return ? true : false"
               ></v-text-field>
             </v-col>
@@ -139,7 +138,7 @@
                 class=""
                 color="primary"
                 dark
-                @click="set_full_amount(payment.idx)"
+                @click="set_rest_amount(payment.idx)"
                 >{{ payment.mode_of_payment }}</v-btn
               >
             </v-col>
