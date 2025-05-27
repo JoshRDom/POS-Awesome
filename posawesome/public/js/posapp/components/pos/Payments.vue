@@ -18,22 +18,22 @@
               dense
               outlined
               color="primary"
-              :label="frappe._('Payment Term Code')"
+              :label="frappe._('Voucher Code')"
               background-color="white"
               hide-details
-              v-model="payment_term_code"
-              :disabled="is_payment_term_applied"
-              @keydown.enter="apply_payment_term(payment_term_code)"
+              v-model="voucher_code"
+              :disabled="is_voucher_applied"
+              @keydown.enter="apply_voucher(voucher_code)"
             ></v-text-field>
           </v-col>
-          <v-col cols="5" v-if="is_payment_term_applied">
+          <v-col cols="5" v-if="is_voucher_applied">
             <v-text-field
               outlined
               color="primary"
-              :label="frappe._('Claimed Amount')"
+              :label="frappe._('Claimable Amount from Voucher')"
               background-color="white"
               hide-details
-              :value="formtCurrency(claimed_amount)"
+              :value="formtCurrency(claimable_amount - claimed_amount)"
               readonly
               :prefix="currencySymbol(invoice_doc.currency)"
               dense
@@ -119,6 +119,7 @@
                 "
                 :rules="[isNumber]"
                 :prefix="currencySymbol(invoice_doc.currency)"
+                @focus="set_rest_amount(payment.idx)"
                 :readonly="invoice_doc.is_return ? true : false"
               ></v-text-field>
             </v-col>
@@ -175,6 +176,40 @@
               >
                 {{ __("Request") }}
               </v-btn>
+            </v-col>
+          </v-row>
+          <v-row
+            class="pyments px-1 py-0"
+            v-if="
+              is_voucher_applied
+            "
+          >
+            <v-col cols="6">
+              <v-text-field
+                dense
+                outlined
+                color="primary"
+                :label="frappe._('Voucher Discount')"
+                background-color="white"
+                hide-details
+                :value="formtCurrency(claimed_amount)"
+                @change="
+                  setFormatedCurrency(payment, 'amount', null, true, $event)
+                "
+                :rules="[isNumber]"
+                :prefix="currencySymbol(invoice_doc.currency)"
+                :readonly="true"
+              ></v-text-field>
+            </v-col>
+            <v-col cols="6">
+              <v-btn
+                block
+                class=""
+                color="primary"
+                dark
+                @click="claim_amount()"
+                >{{ "TOGGLE VOUCHER DISCOUNT" }}</v-btn
+              >
             </v-col>
           </v-row>
         </div>
@@ -315,20 +350,7 @@
               :label="frappe._('Grand Total')"
               background-color="white"
               hide-details
-              :value="formtCurrency(invoice_doc.grand_total - claimed_amount)"
-              disabled
-              :prefix="currencySymbol(invoice_doc.currency)"
-            ></v-text-field>
-          </v-col>
-          <v-col cols="6" v-if="is_payment_term_applied">
-            <v-text-field
-              dense
-              outlined
-              color="primary"
-              :label="frappe._('Trade Receivable')"
-              background-color="white"
-              hide-details
-              :value="formtCurrency(claimed_amount)"
+              :value="formtCurrency(invoice_doc.grand_total)"
               disabled
               :prefix="currencySymbol(invoice_doc.currency)"
             ></v-text-field>
@@ -767,7 +789,9 @@ export default {
     pos_settings: "",
     customer_info: "",
     mpesa_modes: [],
-    is_payment_term_applied: false,
+    is_voucher_applied: false,
+    claimable_amount: 0,
+    is_amount_claimed: false
   }),
 
   methods: {
@@ -775,9 +799,11 @@ export default {
       evntBus.$emit("show_payment", "false");
       evntBus.$emit("set_customer_readonly", false);
 
-      // reset payment term add-ons
-      this.payment_term_code = '';
-      this.is_payment_term_applied = false;
+      // reset voucher add-ons
+      this.voucher_code = '';
+      this.is_voucher_applied = false;
+      this.claimable_amount = 0;
+      this.is_amount_claimed = false;
     },
     submit(event, payment_received = false, print = false) {
       if (!this.invoice_doc.is_return && this.total_payments < 0) {
@@ -1289,20 +1315,69 @@ export default {
       this.clear_all_amounts();
       this.customer_credit_dict.push(advance);
     },
-    apply_payment_term(payment_term_code) {
-      if (payment_term_code == 'LAMRESEARCH' &&
-          this.invoice_doc.total > 4 &&
-          this.invoice_doc.customer == 'LAM COMPANY' &&
-          this.invoice_doc.debit_to == '1310-1000-01 - LAM COMPANY - MKSB') {
-        this.is_payment_term_applied = true;
+    apply_voucher(voucher_code) {
+      if (voucher_code == 'LAMRESEARCH') {
+
+        // set and lock which customer to auto load from the voucher code
+        evntBus.$emit("set_customer_readonly", true);
+        evntBus.$emit('set_customer', 'LAM COMPANY');
+
+        // update the invoice model in this vue.js file and the draft invoice in ERPNext
+        let doc = this.invoice_doc;
+        doc.customer = 'LAM COMPANY';
+        doc.debit_to = '1310-1000-01 - LAM COMPANY - MKSB';
+        this.invoice_doc = this.update_invoice(doc);
+
+        this.is_voucher_applied = true;
+        this.claimable_amount = 4;
         this.clear_all_amounts();
       }
+    },
+    claim_amount() {
+      if (this.is_voucher_applied && this.invoice_doc.grand_total>=this.claimable_amount) {
+        if (!this.is_amount_claimed) {
+          this.is_amount_claimed = true;
+        } else if (this.is_amount_claimed) {
+          this.is_amount_claimed = false;
+        } else {
+          evntBus.$emit("show_mesage", {
+          text: `Error in Payments.vue! Please contact technical support.`,
+          color: "error",
+        });
+        }
+      } else if (this.invoice_doc.grand_total<4) {
+        evntBus.$emit("show_mesage", {
+          text: `Grand Total is less than the minimum amount to apply the Voucher Discount!`,
+          color: "error",
+        });
+      } else {
+        evntBus.$emit("show_mesage", {
+          text: `Error in Payments.vue! Please contact technical support.`,
+          color: "error",
+        });
+      }
+    },
+    update_invoice(doc) {
+      const vm = this;
+      frappe.call({
+        method: "posawesome.posawesome.api.posapp.update_invoice",
+        args: {
+          data: doc,
+        },
+        async: false,
+        callback: function (r) {
+          if (r.message) {
+            vm.invoice_doc = r.message;
+          }
+        },
+      });
+      return this.invoice_doc;
     }
   },
 
   computed: {
     claimed_amount() {
-      let amount = this.is_payment_term_applied ? 4 : 0;
+      let amount = this.is_amount_claimed ? this.claimable_amount : 0;
       return amount;
     },
     total_payments() {

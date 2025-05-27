@@ -2982,7 +2982,7 @@ export default {
   },
   watch: {
     customer() {
-      this.close_payments();
+      // this.close_payments();
       evntBus.$emit("set_customer", this.customer);
       this.fetch_customer_details();
       this.set_delivery_charges();

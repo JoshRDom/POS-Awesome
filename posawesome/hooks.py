@@ -263,6 +263,14 @@ fixtures = [
     },
     {
         "doctype": "Property Setter",
-        "filters": [["name", "in", ("Sales Invoice-posa_pos_opening_shift-no_copy")]],
+        "filters": [
+            [
+                "name", 
+                "in", 
+                (
+                    "Sales Invoice-posa_pos_opening_shift-no_copy",
+                )
+            ]
+        ],
     },
 ]
