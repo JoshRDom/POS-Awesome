@@ -275,4 +275,4 @@ fixtures = [
     },
 ]
 
-required_apps = ["mk_custom"]
+required_apps = ["mk_custom", "qrcode_gen"]
