@@ -174,12 +174,15 @@ def make_closing_shift_from_opening(opening_shift):
                     "posting_date": d.posting_date,
                     "grand_total": d.grand_total,
                     "customer": d.customer,
+                    "custom_voucher_used": d.status == "Partly Paid"
                 }
             )
         )
         closing_shift.grand_total += flt(d.grand_total)
         closing_shift.net_total += flt(d.net_total)
         closing_shift.total_quantity += flt(d.total_qty)
+        if d.status == "Partly Paid":
+            closing_shift.custom_number_of_vouchers_used += 1
 
         for t in d.taxes:
             existing_tax = [

@@ -58,6 +58,23 @@
                 </template>
               </v-col>
             </v-row>
+            <v-row>
+              <v-col md="4"
+                ><span class="mt-1">{{ __('Number of Vouchers Used') }}:</span>
+              </v-col>
+              <v-col md="2"
+                ><v-text-field
+                  class="p-0 m-0"
+                  dense
+                  color="primary"
+                  background-color="white"
+                  hide-details
+                  :value="dialog_data.custom_number_of_vouchers_used"
+                  flat
+                  readonly
+                ></v-text-field
+              ></v-col>
+            </v-row>
           </v-container>
         </v-card-text>
         <v-card-actions>
@@ -122,6 +139,7 @@ export default {
   created: function () {
     evntBus.$on('open_ClosingDialog', (data) => {
       this.closingDialog = true;
+      console.log(data);
       this.dialog_data = data;
     });
     evntBus.$on('register_pos_profile', (data) => {
