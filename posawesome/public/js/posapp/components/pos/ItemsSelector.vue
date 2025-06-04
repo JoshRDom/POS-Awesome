@@ -12,11 +12,25 @@
         color="info"
       ></v-progress-linear>
       <v-row class="items px-2 py-1">
-        <v-col class="pb-0 mb-2">
+        <v-col cols="3" class="pb-0 mb-2">
           <v-text-field
             dense
             clearable
             autofocus
+            outlined
+            color="primary"
+            :label="frappe._('Scan Item Barcode')"
+            background-color="white"
+            hide-details
+            v-model="barcode"
+            @keydown.esc="esc_event"
+            @keydown.enter="scan_barcode"
+          ></v-text-field>
+        </v-col>
+        <v-col class="pb-0 mb-2">
+          <v-text-field
+            dense
+            clearable
             outlined
             color="primary"
             :label="frappe._('Search Items')"
@@ -389,10 +403,11 @@ export default {
         this.search = null;
         this.first_search = null;
         this.debounce_search = null;
+        this.barcode = null;
         this.flags.serial_no = null;
         this.flags.batch_no = null;
         this.qty = 1;
-        this.$refs.debounce_search.focus();
+        this.$refs.barcode.focus();
       }
     },
     search_onchange() {
@@ -402,6 +417,11 @@ export default {
       } else {
         vm.enter_event();
       }
+    },
+    scan_barcode() {
+      this.search = this.barcode;
+      this.first_search = this.barcode;
+      this.enter_event();
     },
     get_item_qty(first_search) {
       let scal_qty = Math.abs(this.qty);
@@ -441,7 +461,7 @@ export default {
       this.search = null;
       this.first_search = null;
       this.qty = 1;
-      this.$refs.debounce_search.focus();
+      this.$refs.barcode.focus();
     },
     update_items_details(items) {
       // set debugger
@@ -495,6 +515,7 @@ export default {
       } else {
         this.enter_event();
         this.debounce_search = null;
+        this.barcode = null;
         this.search = null;
       }
     },

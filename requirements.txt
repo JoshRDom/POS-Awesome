@@ -1,2 +1,4 @@
 # frappe   # https://github.com/frappe/frappe is installed during bench-init
 # erpnext   # https://github.com/frappe/erpnext it should be installed manually
+# mk_custom # https://github.com/JoshRDom/mk_custom
+# qrcode_gen # https://github.com/JoshRDom/qrcode_gen

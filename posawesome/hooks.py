@@ -274,3 +274,5 @@ fixtures = [
         ],
     },
 ]
+
+required_apps = ["mk_custom"]
