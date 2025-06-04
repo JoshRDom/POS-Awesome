@@ -26,19 +26,6 @@
               @keydown.enter="apply_voucher(voucher_code)"
             ></v-text-field>
           </v-col>
-          <v-col cols="5" v-if="is_voucher_applied">
-            <v-text-field
-              outlined
-              color="primary"
-              :label="frappe._('Claimable Amount from Voucher')"
-              background-color="white"
-              hide-details
-              :value="formtCurrency(claimable_amount - claimed_amount)"
-              readonly
-              :prefix="currencySymbol(invoice_doc.currency)"
-              dense
-            ></v-text-field>
-          </v-col>
           
           <v-col cols="7">
             <v-text-field
@@ -200,16 +187,6 @@
                 :prefix="currencySymbol(invoice_doc.currency)"
                 :readonly="true"
               ></v-text-field>
-            </v-col>
-            <v-col cols="6">
-              <v-btn
-                block
-                class=""
-                color="primary"
-                dark
-                @click="claim_amount()"
-                >{{ "TOGGLE VOUCHER DISCOUNT" }}</v-btn
-              >
             </v-col>
           </v-row>
         </div>
@@ -790,8 +767,7 @@ export default {
     customer_info: "",
     mpesa_modes: [],
     is_voucher_applied: false,
-    claimable_amount: 0,
-    is_amount_claimed: false
+    claimed_amount: 0
   }),
 
   methods: {
@@ -802,8 +778,7 @@ export default {
       // reset voucher add-ons
       this.voucher_code = '';
       this.is_voucher_applied = false;
-      this.claimable_amount = 0;
-      this.is_amount_claimed = false;
+      this.claimed_amount = 0;
     },
     submit(event, payment_received = false, print = false) {
       if (!this.invoice_doc.is_return && this.total_payments < 0) {
@@ -1317,44 +1292,31 @@ export default {
     },
     apply_voucher(voucher_code) {
       if (voucher_code == 'LAMRESEARCH') {
-
-        // set and lock which customer to auto load from the voucher code
-        evntBus.$emit("set_customer_readonly", true);
-        evntBus.$emit('set_customer', 'LAM COMPANY');
-
-        // update the invoice model in this vue.js file and the draft invoice in ERPNext
-        let doc = this.invoice_doc;
-        doc.customer = 'LAM COMPANY';
-        doc.debit_to = '1310-1000-01 - LAM COMPANY - MKSB';
-        this.invoice_doc = this.update_invoice(doc);
-
-        this.is_voucher_applied = true;
-        this.claimable_amount = 4;
-        this.clear_all_amounts();
-      }
-    },
-    claim_amount() {
-      if (this.is_voucher_applied && this.invoice_doc.grand_total>=this.claimable_amount) {
-        if (!this.is_amount_claimed) {
-          this.is_amount_claimed = true;
-        } else if (this.is_amount_claimed) {
-          this.is_amount_claimed = false;
-        } else {
+        if (this.invoice_doc.grand_total < 4) {
           evntBus.$emit("show_mesage", {
-          text: `Error in Payments.vue! Please contact technical support.`,
-          color: "error",
-        });
+            text: `Grand Total is less than the minimum amount to apply this Voucher Discount!`,
+            color: "error",
+          });
+        } else if (this.invoice_doc.grand_total >= 4) {
+          // set and lock which customer to auto load from the voucher code
+          evntBus.$emit("set_customer_readonly", true);
+          evntBus.$emit('set_customer', 'LAM COMPANY');
+
+          // update the invoice model in this vue.js file and the draft invoice in ERPNext
+          let doc = this.invoice_doc;
+          doc.customer = 'LAM COMPANY';
+          doc.debit_to = '1310-1000-01 - LAM COMPANY - MKSB';
+          this.invoice_doc = this.update_invoice(doc);
+
+          this.is_voucher_applied = true;
+          this.claimed_amount = 4;
+          this.clear_all_amounts();
         }
-      } else if (this.invoice_doc.grand_total<4) {
-        evntBus.$emit("show_mesage", {
-          text: `Grand Total is less than the minimum amount to apply the Voucher Discount!`,
-          color: "error",
-        });
       } else {
         evntBus.$emit("show_mesage", {
-          text: `Error in Payments.vue! Please contact technical support.`,
-          color: "error",
-        });
+            text: `There are no registered Vouchers with this code (case sensitive)!`,
+            color: "error",
+          });
       }
     },
     update_invoice(doc) {
@@ -1376,10 +1338,6 @@ export default {
   },
 
   computed: {
-    claimed_amount() {
-      let amount = this.is_amount_claimed ? this.claimable_amount : 0;
-      return amount;
-    },
     total_payments() {
       let total = parseFloat(this.invoice_doc.loyalty_amount);
       if (this.invoice_doc && this.invoice_doc.payments) {
