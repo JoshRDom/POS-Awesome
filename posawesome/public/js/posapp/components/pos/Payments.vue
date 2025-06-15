@@ -1304,9 +1304,9 @@ export default {
 
           // update the invoice model in this vue.js file and the draft invoice in ERPNext
           let doc = this.invoice_doc;
-          doc.title = 'LAM COMPANY';
-          doc.customer = 'LAM COMPANY';
-          doc.debit_to = '1310-1000-01 - LAM COMPANY - MKSB';
+          doc.title = 'LAM RESEARCH';
+          doc.customer = 'LAM RESEARCH';
+          doc.debit_to = '1000-2021-07 - LAM RESEARCH - MKSB';
           this.invoice_doc = this.update_invoice(doc);
 
           this.is_voucher_applied = true;
