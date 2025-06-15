@@ -1300,7 +1300,7 @@ export default {
         } else if (this.invoice_doc.grand_total >= 4) {
           // set and lock which customer to auto load from the voucher code
           evntBus.$emit("set_customer_readonly", true);
-          evntBus.$emit('set_customer', 'LAM COMPANY');
+          evntBus.$emit('set_customer', 'LAM RESEARCH');
 
           // update the invoice model in this vue.js file and the draft invoice in ERPNext
           let doc = this.invoice_doc;
