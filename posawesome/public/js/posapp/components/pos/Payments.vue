@@ -126,7 +126,7 @@
                 class=""
                 color="primary"
                 dark
-                @click="set_rest_amount(payment.idx)"
+                @click="set_full_amount(payment.idx)"
                 >{{ payment.mode_of_payment }}</v-btn
               >
             </v-col>
@@ -952,7 +952,7 @@ export default {
       this.invoice_doc.payments.forEach((payment) => {
         payment.amount =
           payment.idx == idx
-            ? this.invoice_doc.rounded_total || this.invoice_doc.grand_total
+            ? (this.invoice_doc.rounded_total - this.claimed_amount) || (this.invoice_doc.grand_total - this.claimed_amount)
             : 0;
       });
     },
